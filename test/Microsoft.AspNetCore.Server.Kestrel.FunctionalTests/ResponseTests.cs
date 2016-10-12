@@ -239,6 +239,38 @@ namespace Microsoft.AspNetCore.Server.Kestrel.FunctionalTests
                 sendMalformedRequest: true);
         }
 
+        [Fact]
+        public Task ResponseStatusCodeSetBeforeHttpContextDisposedRequestMalformedRead()
+        {
+            return ResponseStatusCodeSetBeforeHttpContextDispose(
+                async context =>
+                {
+                    await context.Request.Body.ReadAsync(new byte[1], 0, 1);
+                },
+                expectedClientStatusCode: null,
+                expectedServerStatusCode: HttpStatusCode.BadRequest,
+                sendMalformedRequest: true);
+        }
+
+        [Fact]
+        public Task ResponseStatusCodeSetBeforeHttpContextDisposedRequestMalformedReadIgnored()
+        {
+            return ResponseStatusCodeSetBeforeHttpContextDispose(
+                async context =>
+                {
+                    try
+                    {
+                        await context.Request.Body.ReadAsync(new byte[1], 0, 1);
+                    }
+                    catch (BadHttpRequestException)
+                    {
+                    }
+                },
+                expectedClientStatusCode: null,
+                expectedServerStatusCode: HttpStatusCode.BadRequest,
+                sendMalformedRequest: true);
+        }
+
         private static async Task ResponseStatusCodeSetBeforeHttpContextDispose(
             RequestDelegate handler,
             HttpStatusCode? expectedClientStatusCode,
