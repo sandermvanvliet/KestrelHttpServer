@@ -124,7 +124,23 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Internal.Http
         public int RemotePort { get; set; }
         public IPAddress LocalIpAddress { get; set; }
         public int LocalPort { get; set; }
-        public string Scheme { get; set; }
+
+        public string Scheme
+        {
+            get
+            {
+                if (RequestHeaders != null &&
+                    RequestHeaders.ContainsKey("X-Forwarded-Proto") &&
+                    !string.IsNullOrEmpty(RequestHeaders["X-Forwarded-Proto"]))
+                {
+                    return RequestHeaders["X-Forwarded-Proto"];
+                }
+
+                return _scheme;
+            }
+            set { _scheme = value; }
+        }
+
         public string Method { get; set; }
         public string PathBase { get; set; }
         public string Path { get; set; }
@@ -184,6 +200,8 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Internal.Http
         }
 
         private string _reasonPhrase;
+        private string _scheme;
+
         public string ReasonPhrase
         {
             get

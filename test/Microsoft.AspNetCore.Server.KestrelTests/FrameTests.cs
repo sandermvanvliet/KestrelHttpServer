@@ -1504,5 +1504,43 @@ namespace Microsoft.AspNetCore.Server.KestrelTests
                 socketInput.IncomingFin();
             }
         }
+
+        [Fact]
+        public void XForwardedProtoSetsScheme()
+        {
+            var trace = new KestrelTrace(new TestKestrelTrace());
+            var ltp = new LoggingThreadPool(trace);
+            using (var pool = new MemoryPool())
+            using (var socketInput = new SocketInput(pool, ltp))
+            {
+                var serviceContext = new ServiceContext
+                {
+                    DateHeaderValueManager = new DateHeaderValueManager(),
+                    ServerOptions = new KestrelServerOptions()
+                };
+                var listenerContext = new ListenerContext(serviceContext)
+                {
+                    ServerAddress = ServerAddress.FromUrl("http://localhost:5000")
+                };
+                var connectionContext = new ConnectionContext(listenerContext)
+                {
+                    ConnectionControl = Mock.Of<IConnectionControl>()
+                };
+
+                var frame = new Frame<object>(application: null, context: connectionContext);
+                frame.Reset();
+                frame.InitializeHeaders();
+
+                var data = Encoding.ASCII.GetBytes("X-Forwarded-Proto: https\r\n\r\n");
+                socketInput.IncomingData(data, 0, data.Length);
+                
+                var success = frame.TakeMessageHeaders(socketInput, (FrameRequestHeaders)frame.RequestHeaders);
+                Assert.True(success);
+
+                Assert.Equal("https", frame.RequestHeaders["X-Forwarded-Proto"]);
+                Assert.Equal("https", frame.Scheme);
+                Assert.Equal("https", ((IHttpRequestFeature)frame).Scheme);
+            }
+        }
     }
 }
